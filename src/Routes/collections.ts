@@ -9,9 +9,13 @@ import { error400Message } from "../Messages/ErrorExceptions";
 import {
   createCollections,
   deleteCollection,
+  deleteUser,
+  fetchCollectionUser,
+  fetchCollectionUsers,
   getCollection,
   getCollections,
   updateCollections,
+  updateUsers,
 } from "../Controllers/CollectionsController";
 import { verifyClientToken } from "../Middlewares/AuthMiddleWare";
 const collections = new Hono();
@@ -83,5 +87,55 @@ collections.get(
     }
   }
 );
+
+//Users routes
+collections.get(
+  "/:id/users",
+  verifyClientToken,
+  (c) => {
+    try {
+      return fetchCollectionUsers(c);
+    } catch (e) {
+      throw e;
+    }
+  }
+);
+
+collections.get(
+  "/:id/user/:userId",
+  verifyClientToken,
+  (c) => {
+    try {
+      return fetchCollectionUser(c);
+    } catch (e) {
+      throw e;
+    }
+  }
+);
+
+collections.patch(
+  "/:id/user/:userId",
+  verifyClientToken,
+  (c) => {
+    try {
+      return updateUsers(c);
+    } catch (e) {
+      throw e;
+    }
+  }
+);
+
+collections.delete(
+  "/:id/user/:userId",
+  verifyClientToken,
+  (c) => {
+    try {
+      return deleteUser(c);
+    } catch (e) {
+      throw e;
+    }
+  }
+);
+
 
 export default collections;
