@@ -5,21 +5,25 @@ import routes from "./Routes";
 import { prettyJSON } from "hono/pretty-json";
 import connectDB from "./db";
 import { contextStorage } from "hono/context-storage";
-//#2dd4bf
+
+import { rateLimiter } from "hono-rate-limiter";
 connectDB();
+
+const limiter = rateLimiter({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  limit: 100,               // 100 requests per 10 min
+  standardHeaders: "draft-7",
+});
 
 const app = new Hono();
 
-app.use(logger(), prettyJSON(), contextStorage());
-
+app.use(limiter, logger(), prettyJSON(), contextStorage());
 
 app.get("/", (c) => {
   return c.text("uAuth 1.0.1");
 });
 
 app.route("/api", routes);
-
-
 
 app.onError((err: any, c) => {
   if (err.logError) {
