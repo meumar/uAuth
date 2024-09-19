@@ -21,7 +21,7 @@ class UserService {
       if (await user.isValidPassword(password)) {
         const basicInfo = {
           _id: user._id,
-          email: user.primaryKey,
+          primaryKey: user.primaryKey,
           name: user.name,
         };
         return {

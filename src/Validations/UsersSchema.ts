@@ -36,3 +36,8 @@ export const forgetPasswordVerifyUser = z.object({
   code: z.string(),
   password: z.string()
 });
+
+
+export const revokeUser = z.object({
+  refreshToken: z.string(),
+});

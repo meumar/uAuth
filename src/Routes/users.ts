@@ -7,21 +7,25 @@ import {
   forgetPasswordVerifyUser,
   loginUser,
   resendUser,
+  revokeUser,
   updateUser,
   verifyUser,
 } from "../Validations/UsersSchema";
 import { error400Message, reqSizeExeceeded } from "../Messages/ErrorExceptions";
 import {
   authenticateUser,
+  checkUser,
   createUsers,
   deleteUser,
   fetchUsers,
+  fetchUsersByCustomsrgs,
   forgetPasswordUsers,
   forgetPasswordVerifyUsers,
   getUser,
   getUserByPrimarykey,
   loginUsers,
   resendUsers,
+  revokeToken,
   updateUsers,
   verifyUsers,
 } from "../Controllers/UsersController";
@@ -111,17 +115,44 @@ users.post(
   }
 );
 
+users.post(
+  "/revoke-token/:collectionId",
+  verifyCollectionToken,
+  validator("json", (value, c) => {
+    const parsed = revokeUser.safeParse(value);
+    if (!parsed.success) {
+      throw new Error400Exception(error400Message, parsed.error, false);
+    }
+    return parsed.data;
+  }),
+  (c) => {
+    return revokeToken(c);
+  }
+);
+
 users.get("/details/:collectionId", verifyCollectionToken, (c) => {
   return fetchUsers(c);
+});
+
+users.post("/details/:collectionId", verifyCollectionToken, (c) => {
+  return fetchUsersByCustomsrgs(c);
+});
+
+users.post("/details/:collectionId/:id", verifyCollectionToken, (c) => {
+  return checkUser(c);
 });
 
 users.get("/details/:collectionId/:id", verifyCollectionToken, (c) => {
   return getUser(c);
 });
 
-users.get("/details-userkey/:collectionId/:userkey", verifyCollectionToken, (c) => {
-  return getUserByPrimarykey(c);
-});
+users.get(
+  "/details-userkey/:collectionId/:userkey",
+  verifyCollectionToken,
+  (c) => {
+    return getUserByPrimarykey(c);
+  }
+);
 
 users.patch(
   "/details/:collectionId/:id",

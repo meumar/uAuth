@@ -64,9 +64,9 @@ export const verifyCollectionToken = async (c: Context, next: Next) => {
   }
 };
 
-export const verifyRefreshToken = async (authTokenData: any) => {
+export const verifyRefreshToken = async (authTokenData: any, sToken: string = "") => {
   try {
-    return await verifyAuthToken(authTokenData.refreshToken, "REFRESH_TOKEN");
+    return await verifyAuthToken(authTokenData.refreshToken, "REFRESH_TOKEN", sToken);
   } catch (e: any) {
     deletedMany({ _id: authTokenData._id }, "REFRESHTOKEN");
     throw new Error401Exception(e?.message);

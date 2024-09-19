@@ -1,6 +1,7 @@
 import { Context } from "hono";
 import bcrypt from "bcrypt";
 import {
+  accessTokenGeneratedSucess,
   authenticateSuccess,
   createdSuccess,
   deletedSuccess,
@@ -24,12 +25,14 @@ import { getContext } from "hono/context-storage";
 import { sendUserVerificationCode } from "../Utils/Verification";
 import {
   Error400Exception,
+  Error401Exception,
   Error403Exception,
   Error409Exception,
 } from "../Exceptions/customError";
 import {
   duplicateCollection,
   duplicateUser,
+  invalidRefreshToken,
   invalidVerification,
   notAllowedCreate,
   notAllowedUpdate,
@@ -37,8 +40,10 @@ import {
   userNotFound,
 } from "../Messages/ErrorExceptions";
 import UserService from "../Services/DatabaseServices/UserDBServices";
-import { verifyAuthToken } from "../Utils/Token";
+import { createAuthToken, verifyAuthToken } from "../Utils/Token";
 import { verifyClientCode } from "../Services/DatabaseServices/VerificationDBServices";
+import { customArgsQueryBuilder } from "../Utils/Helper";
+import { verifyRefreshToken } from "../Middlewares/AuthMiddleWare";
 
 const clientService = new UserService();
 
@@ -110,7 +115,10 @@ export const resendUsers = async (c: Context) => {
     const form = await c.req.json();
     const collectionId = c.req.param("collectionId");
 
-    const user = await getOneByQuery({ primaryKey: form.primaryKey, collectionId: collectionId }, "USER");
+    const user = await getOneByQuery(
+      { primaryKey: form.primaryKey, collectionId: collectionId },
+      "USER"
+    );
     const collection = getContext<RequestInterface>().var.collection;
 
     if (!user) throw new Error400Exception(userNotFound, form, false);
@@ -354,7 +362,105 @@ export const forgetPasswordVerifyUsers = async (c: Context) => {
     ]);
     return c.json({
       success: true,
-      mesaage: verifiedSuccess
+      mesaage: verifiedSuccess,
+    });
+  } catch (e) {
+    throw e;
+  }
+};
+
+export const fetchUsersByCustomsrgs = async (c: Context) => {
+  try {
+    const collection = getContext<RequestInterface>().var.collection;
+    const customQuery = await c.req.json();
+
+    const {
+      limit = 10,
+      page = 1,
+      search = "",
+      sortBy = "_id",
+      sortOrder = "desc",
+    } = c.req.query();
+    let query: any = { collectionId: collection._id };
+    if (search) {
+      query["name"] = {
+        $regex: new RegExp(search, "i"),
+      };
+    }
+
+    query = customArgsQueryBuilder(customQuery, query);
+
+    const data = await getByPagination(
+      query,
+      Number(limit),
+      Number(page),
+      { [sortBy]: sortOrder == "asc" ? 1 : -1 },
+      "_id name primaryKey customArgs createdAt, updatedAt",
+      "USER"
+    );
+
+    return c.json({
+      success: true,
+      data: data,
+      messages: fetchedSuccess,
+    });
+  } catch (e) {
+    throw e;
+  }
+};
+
+export const checkUser = async (c: Context) => {
+  try {
+    const collection = getContext<RequestInterface>().var.collection;
+    const customQuery = await c.req.json();
+
+    const userId = c.req.param("id");
+
+    let query = { _id: userId, collectionId: collection._id };
+    query = customArgsQueryBuilder(customQuery, query);
+
+    const user = await findOneByQuery(
+      query,
+      "_id name primaryKey customArgs createdAt, updatedAt",
+      "USER"
+    );
+    return c.json({
+      success: true,
+      data: user,
+      messages: fetchedSuccess,
+    });
+  } catch (e) {
+    throw e;
+  }
+};
+
+export const revokeToken = async (c: Context) => {
+  try {
+    const form = await c.req.json();
+    const collection = getContext<RequestInterface>().var.collection;
+
+    const refreshTokenData = await getOneByQuery(form, "REFRESHTOKEN");
+
+    if (!refreshTokenData)
+      throw new Error401Exception(invalidRefreshToken, form, false);
+
+    const { _id, name, primaryKey } = await verifyRefreshToken(
+      refreshTokenData,
+      collection.secretToken
+    );
+    const payload = { _id, name, primaryKey };
+    const access_token = await createAuthToken(
+      payload,
+      "AUTH_TOKEN",
+      collection.secretToken,
+      collection.accessTokenLifetime
+    );
+    return c.json({
+      success: true,
+      mesaage: accessTokenGeneratedSucess,
+      data: {
+        authToken: access_token,
+      },
     });
   } catch (e) {
     throw e;
