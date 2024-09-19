@@ -7,11 +7,12 @@ import connectDB from "./db";
 import { contextStorage } from "hono/context-storage";
 
 import { rateLimiter } from "hono-rate-limiter";
+import { port } from "./Utils/Config";
 connectDB();
 
 const limiter = rateLimiter({
   windowMs: 10 * 60 * 1000, // 10 minutes
-  limit: 100,               // 100 requests per 10 min
+  limit: 100, // 100 requests per 10 min
   standardHeaders: "draft-7",
 });
 
@@ -39,7 +40,6 @@ app.onError((err: any, c) => {
   );
 });
 
-const port = 3000;
 console.log(`Server is running on port ${port}`);
 
 serve({

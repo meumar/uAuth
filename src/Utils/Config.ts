@@ -1,5 +1,6 @@
 import 'dotenv/config';
 
+export const port: any = process.env.PORT;
 
 export const mongodb_url = process.env.MONGO_URI;
 
